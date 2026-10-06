@@ -18,70 +18,117 @@ PARAMS = {
 }
 HEADERS = {"User-Agent": PARAMS["uastr"], "Referer": "https://h5.ecom.mgtv.com/"}
 
-def fetch():
-    resp = requests.get(URL, params=PARAMS, headers=HEADERS, timeout=15)
-    data = resp.json()
-    if data.get("code") != 200:
-        raise Exception(f"接口异常：{data.get('msg')}")
-    return sorted(data["data"]["top_list"], key=lambda x: x["top"])[:20]
+def build_html():
+    """生成一个自带抓取逻辑的 HTML，数据由浏览器直接请求接口"""
+    import json
+    params_js = json.dumps(PARAMS, ensure_ascii=False)
 
-def build_html(top_list):
-    # 北京时间 = UTC + 8 小时
-    now = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
-    cards = ""
-    for item in top_list:
-        rank = item.get("top", 0)
-        name = item.get("show_name", "")
-        icon = item.get("icon", "")
-        if rank == 1: color = "#f7c948"
-        elif rank == 2: color = "#c9d1e0"
-        elif rank == 3: color = "#cd7f4a"
-        else: color = "#7a8296"
-        cards += f"""
-        <div class="card">
-            <img class="icon" src="{icon}" alt="">
-            <div class="info">
-                <div class="rank" style="color:{color}">#{rank}</div>
-                <div class="name">{name}</div>
-            </div>
-        </div>"""
-
-    return f"""<!DOCTYPE html>
+    return """<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>拾月人气园长排行榜</title>
 <style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ background:#0b0d13; color:#e8eaf0;
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0b0d13; color:#e8eaf0;
          font-family:"Microsoft YaHei","PingFang SC",sans-serif;
-         padding:16px; max-width:900px; margin:0 auto; }}
-  h1 {{ font-size:20px; color:#f7c948; margin-bottom:4px; }}
-  .time {{ font-size:12px; color:#5a6274; margin-bottom:16px; }}
-  .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-           gap:10px; }}
-  .card {{ display:flex; align-items:center; background:#161a24;
-           border:1px solid #242938; border-radius:10px; padding:10px; }}
-  .icon {{ width:48px; height:48px; border-radius:8px; object-fit:cover;
-           flex-shrink:0; }}
-  .info {{ margin-left:12px; overflow:hidden; }}
-  .rank {{ font-size:13px; font-weight:bold; }}
-  .name {{ font-size:13px; color:#e8eaf0; white-space:nowrap;
-           overflow:hidden; text-overflow:ellipsis; }}
+         padding:16px; max-width:900px; margin:0 auto; }
+  h1 { font-size:20px; color:#f7c948; margin-bottom:4px; }
+  .bar { display:flex; justify-content:space-between; align-items:center;
+         margin-bottom:16px; }
+  .time { font-size:12px; color:#5a6274; }
+  button { background:#1e2433; color:#9cb3ff; border:none;
+           padding:6px 14px; border-radius:6px; font-size:13px;
+           cursor:pointer; }
+  button:active { background:#2a3148; }
+  button:disabled { color:#5a6274; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+          gap:10px; }
+  .card { display:flex; align-items:center; background:#161a24;
+          border:1px solid #242938; border-radius:10px; padding:10px; }
+  .icon { width:48px; height:48px; border-radius:8px; object-fit:cover;
+          flex-shrink:0; }
+  .info { margin-left:12px; overflow:hidden; }
+  .rank { font-size:13px; font-weight:bold; }
+  .name { font-size:13px; color:#e8eaf0; white-space:nowrap;
+          overflow:hidden; text-overflow:ellipsis; }
+  .msg { padding:20px; text-align:center; color:#5a6274; }
 </style>
 </head>
 <body>
   <h1>🏆 拾月人气园长排行榜 TOP20</h1>
-  <div class="time">最后更新：{now}</div>
-  <div class="grid">{cards}
+  <div class="bar">
+    <div class="time" id="time">加载中...</div>
+    <button id="btn" onclick="loadData()">🔄 刷新</button>
   </div>
+  <div class="grid" id="grid">
+    <div class="msg">正在获取数据...</div>
+  </div>
+
+<script>
+const API = "https://mgeact.api.mgtv.com/activity/conf";
+const PARAMS = __PARAMS__;
+
+function beijingTime() {
+  const d = new Date();
+  const t = new Date(d.getTime() + (d.getTimezoneOffset() + 480) * 60000);
+  const p = n => String(n).padStart(2, "0");
+  return t.getFullYear() + "-" + p(t.getMonth()+1) + "-" + p(t.getDate())
+       + " " + p(t.getHours()) + ":" + p(t.getMinutes()) + ":" + p(t.getSeconds());
+}
+
+function loadData() {
+  const btn = document.getElementById("btn");
+  const timeEl = document.getElementById("time");
+  const grid = document.getElementById("grid");
+  btn.disabled = true;
+  btn.textContent = "刷新中...";
+  timeEl.textContent = "正在获取数据...";
+
+  const qs = new URLSearchParams(PARAMS).toString();
+  fetch(API + "?" + qs)
+    .then(r => r.json())
+    .then(data => {
+      if (data.code !== 200) throw new Error(data.msg || "接口异常");
+      const list = data.data.top_list
+        .sort((a, b) => a.top - b.top).slice(0, 20);
+      let html = "";
+      for (const item of list) {
+        const rank = item.top;
+        let color = "#7a8296";
+        if (rank === 1) color = "#f7c948";
+        else if (rank === 2) color = "#c9d1e0";
+        else if (rank === 3) color = "#cd7f4a";
+        html += `<div class="card">
+          <img class="icon" src="${item.icon}" alt="">
+          <div class="info">
+            <div class="rank" style="color:${color}">#${rank}</div>
+            <div class="name">${item.show_name}</div>
+          </div>
+        </div>`;
+      }
+      grid.innerHTML = html;
+      timeEl.textContent = "最后更新：" + beijingTime();
+      btn.disabled = false;
+      btn.textContent = "🔄 刷新";
+    })
+    .catch(err => {
+      timeEl.textContent = "更新失败：" + err.message;
+      btn.disabled = false;
+      btn.textContent = "🔄 重试";
+    });
+}
+
+loadData();
+// 页面开着时，每 5 分钟自动刷新一次
+setInterval(loadData, 5 * 60 * 1000);
+</script>
 </body>
-</html>"""
+</html>""".replace("__PARAMS__", params_js)
 
 if __name__ == "__main__":
-    top_list = fetch()
-    html = build_html(top_list)
+    html = build_html()
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"已生成 index.html，共 {len(top_list)} 条")
+    print("已生成自更新版 index.html")
