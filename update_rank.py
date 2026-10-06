@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 URL = "https://mgeact.api.mgtv.com/activity/conf"
 PARAMS = {
@@ -26,7 +26,7 @@ def fetch():
     return sorted(data["data"]["top_list"], key=lambda x: x["top"])[:20]
 
 def build_html(top_list):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
     cards = ""
     for item in top_list:
         rank = item.get("top", 0)
