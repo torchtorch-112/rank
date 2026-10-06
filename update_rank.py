@@ -26,6 +26,7 @@ def fetch():
     return sorted(data["data"]["top_list"], key=lambda x: x["top"])[:20]
 
 def build_html(top_list):
+    # 北京时间 = UTC + 8 小时
     now = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
     cards = ""
     for item in top_list:
