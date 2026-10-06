@@ -10,163 +10,94 @@
          font-family:"Microsoft YaHei","PingFang SC",sans-serif;
          padding:16px; max-width:900px; margin:0 auto; }
   h1 { font-size:20px; color:#f7c948; margin-bottom:4px; }
-  .time { font-size:12px; color:#5a6274; margin-bottom:16px; }
+  .bar { display:flex; justify-content:space-between; align-items:center;
+         margin-bottom:16px; }
+  .time { font-size:12px; color:#5a6274; }
+  button { background:#1e2433; color:#9cb3ff; border:none;
+           padding:6px 14px; border-radius:6px; font-size:13px;
+           cursor:pointer; }
+  button:active { background:#2a3148; }
+  button:disabled { color:#5a6274; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-           gap:10px; }
+          gap:10px; }
   .card { display:flex; align-items:center; background:#161a24;
-           border:1px solid #242938; border-radius:10px; padding:10px; }
+          border:1px solid #242938; border-radius:10px; padding:10px; }
   .icon { width:48px; height:48px; border-radius:8px; object-fit:cover;
-           flex-shrink:0; }
+          flex-shrink:0; }
   .info { margin-left:12px; overflow:hidden; }
   .rank { font-size:13px; font-weight:bold; }
   .name { font-size:13px; color:#e8eaf0; white-space:nowrap;
-           overflow:hidden; text-overflow:ellipsis; }
+          overflow:hidden; text-overflow:ellipsis; }
+  .msg { padding:20px; text-align:center; color:#5a6274; }
 </style>
 </head>
 <body>
   <h1>🏆 拾月人气园长排行榜 TOP20</h1>
-  <div class="time">最后更新：2026-10-06 15:01:17</div>
-  <div class="grid">
-        <div class="card">
-            <img class="icon" src="https://ecompic3.hitv.com/ecom/39336/a5a83de85adbb50f8e59f5bbc8251452.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#f7c948">#1</div>
-                <div class="name">咚咚糕点铺三店</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic0.hitv.com/ecom/35194/e7a46e9bdffa0536b5f06899d9c49f8e.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#c9d1e0">#2</div>
-                <div class="name">呆小奇贩卖屋3</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic3.hitv.com/ecom/39132/046b87d75ade051d50b56b142098f138.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#cd7f4a">#3</div>
-                <div class="name">牵牵奔奔童话小镇</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic2.hitv.com/ecom/39710/ced76d2d381256d8d76c79f46d52df78.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#4</div>
-                <div class="name">哼哼宇宙</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic2.hitv.com/ecom/36292/c1b242f836a49accd2b471b823f187e9.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#5</div>
-                <div class="name">酥酥皓饼店</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic0.hitv.com/ecom/35561/106fd9c05b200d5075111217faace7a2.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#6</div>
-                <div class="name">憨憨百宝屋2号店</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic1.hitv.com/ecom/34579/97b22bc0798e9a026fcfbe1eded3c603.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#7</div>
-                <div class="name">金桔种植基地 23 号</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic1.hitv.com/ecom/39735/0b975dc4bb81a68bc46ac290947e8918.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#8</div>
-                <div class="name">狐闹厨房</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic2.hitv.com/ecom/39795/be8b18f9c1e225a380455427b2f6cd7c.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#9</div>
-                <div class="name">咚咚糕点铺四店</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic1.hitv.com/ecom/22682/30f7742dd6388b6eeae200e9aace0104.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#10</div>
-                <div class="name">Try一口响铃糖</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic0.hitv.com/ecom/39880/f3f83f93b01ce3812b250500f31b2547.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#11</div>
-                <div class="name">懵懵猫鱼干许愿池</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic1.hitv.com/ecom/37575/52bb4fe69e9526cad09500c206bcaabf.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#12</div>
-                <div class="name">飞船喵喵小铺</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic2.hitv.com/ecom/30498/e3a9f8270bc03dc1b12db26497bfd135.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#13</div>
-                <div class="name">答案加载中</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic2.hitv.com/ecom/38569/2e95daa4e68861683f30bdd47a5272a3.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#14</div>
-                <div class="name">椰蓉蛋糕烘焙店</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic2.hitv.com/ecom/15592/8c06a9a84284966773e6fb1db1c5bd22.png" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#15</div>
-                <div class="name">鑫玩家工作室</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic1.hitv.com/ecom/29585/d171859dc52410e167bfc4cd998e74f4.png" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#16</div>
-                <div class="name">燃料舱</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic1.hitv.com/ecom/38914/0f5703977305935b4e719b190b33c368.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#17</div>
-                <div class="name">云豚杂物社</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic3.hitv.com/ecom/39357/31bf1373f2f5bb044860a16b6e887cf4.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#18</div>
-                <div class="name">丸豆岛</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic3.hitv.com/ecom/32481/9cbc985eaa01151ced58d3a972f50352.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#19</div>
-                <div class="name">小狗的答案</div>
-            </div>
-        </div>
-        <div class="card">
-            <img class="icon" src="https://ecompic1.hitv.com/ecom/39277/5787c2d691d90863cb438210250f80f5.jpg" alt="">
-            <div class="info">
-                <div class="rank" style="color:#7a8296">#20</div>
-                <div class="name">慢羊羊闪现4店</div>
-            </div>
-        </div>
+  <div class="bar">
+    <div class="time" id="time">加载中...</div>
+    <button id="btn" onclick="loadData()">🔄 刷新</button>
   </div>
+  <div class="grid" id="grid">
+    <div class="msg">正在获取数据...</div>
+  </div>
+
+<script>
+const API = "https://mgeact.api.mgtv.com/activity/conf";
+const PARAMS = {"activity_sn": "top20250207xgylypx26m10", "uastr": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0", "origin": "mweb", "order_source": "8", "source": "search_recommend", "source_channel": "ecom", "osType": "h5", "did": "86f8dfdc-9e66-4100-a531-838a06d4e1a0", "uuid": "8819f78989635f9db365c9d8751f1646", "ticket": "C42E14B8F825311F988373C5F8880F5A", "xmtkt": "8940f8e30b20c0e9344512f5e68b0230", "smVersion": "1.0.0"};
+
+function beijingTime() {
+  const d = new Date();
+  const t = new Date(d.getTime() + (d.getTimezoneOffset() + 480) * 60000);
+  const p = n => String(n).padStart(2, "0");
+  return t.getFullYear() + "-" + p(t.getMonth()+1) + "-" + p(t.getDate())
+       + " " + p(t.getHours()) + ":" + p(t.getMinutes()) + ":" + p(t.getSeconds());
+}
+
+function loadData() {
+  const btn = document.getElementById("btn");
+  const timeEl = document.getElementById("time");
+  const grid = document.getElementById("grid");
+  btn.disabled = true;
+  btn.textContent = "刷新中...";
+  timeEl.textContent = "正在获取数据...";
+
+  const qs = new URLSearchParams(PARAMS).toString();
+  fetch(API + "?" + qs)
+    .then(r => r.json())
+    .then(data => {
+      if (data.code !== 200) throw new Error(data.msg || "接口异常");
+      const list = data.data.top_list
+        .sort((a, b) => a.top - b.top).slice(0, 20);
+      let html = "";
+      for (const item of list) {
+        const rank = item.top;
+        let color = "#7a8296";
+        if (rank === 1) color = "#f7c948";
+        else if (rank === 2) color = "#c9d1e0";
+        else if (rank === 3) color = "#cd7f4a";
+        html += `<div class="card">
+          <img class="icon" src="${item.icon}" alt="">
+          <div class="info">
+            <div class="rank" style="color:${color}">#${rank}</div>
+            <div class="name">${item.show_name}</div>
+          </div>
+        </div>`;
+      }
+      grid.innerHTML = html;
+      timeEl.textContent = "最后更新：" + beijingTime();
+      btn.disabled = false;
+      btn.textContent = "🔄 刷新";
+    })
+    .catch(err => {
+      timeEl.textContent = "更新失败：" + err.message;
+      btn.disabled = false;
+      btn.textContent = "🔄 重试";
+    });
+}
+
+loadData();
+// 页面开着时，每 5 分钟自动刷新一次
+setInterval(loadData, 5 * 60 * 1000);
+</script>
 </body>
 </html>
