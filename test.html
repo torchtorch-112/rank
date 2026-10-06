@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CORS 测试</title>
+<style>
+  body { background:#0b0d13; color:#e8eaf0; font-family:sans-serif;
+         padding:20px; line-height:1.8; }
+  .ok { color:#6ee7a8; font-size:18px; font-weight:bold; }
+  .fail { color:#ff6b6b; font-size:18px; font-weight:bold; }
+  pre { background:#161a24; padding:12px; border-radius:8px;
+        overflow:auto; font-size:12px; }
+</style>
+</head>
+<body>
+<h2>CORS 测试</h2>
+<div id="result">正在请求...</div>
+<pre id="detail"></pre>
+
+<script>
+const URL = "https://mgeact.api.mgtv.com/activity/conf";
+const params = new URLSearchParams({
+  activity_sn: "top20250207xgylypx26m10",
+  uastr: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+  origin: "mweb",
+  order_source: "8",
+  source: "search_recommend",
+  source_channel: "ecom",
+  osType: "h5",
+  did: "86f8dfdc-9e66-4100-a531-838a06d4e1a0",
+  uuid: "8819f78989635f9db365c9d8751f1646",
+  ticket: "C42E14B8F825311F988373C5F8880F5A",
+  xmtkt: "8940f8e30b20c0e9344512f5e68b0230",
+  smVersion: "1.0.0"
+});
+
+const fullUrl = URL + "?" + params.toString();
+
+fetch(fullUrl)
+  .then(r => r.json())
+  .then(data => {
+    if (data.code === 200 && data.data && data.data.top_list) {
+      document.getElementById("result").innerHTML =
+        '<span class="ok">✅ CORS 通过！方案2可行</span>';
+      const names = data.data.top_list.slice(0, 5)
+        .map(x => `#${x.top} ${x.show_name}`).join("\n");
+      document.getElementById("detail").textContent =
+        "前5名预览：\n" + names;
+    } else {
+      document.getElementById("result").innerHTML =
+        '<span class="fail">⚠️ 请求成功但数据结构不对</span>';
+      document.getElementById("detail").textContent =
+        JSON.stringify(data, null, 2).slice(0, 500);
+    }
+  })
+  .catch(err => {
+    document.getElementById("result").innerHTML =
+      '<span class="fail">❌ CORS 被拦截，方案2不可行</span>';
+    document.getElementById("detail").textContent =
+      "错误信息：" + err.message + "\n\n" +
+      "这说明浏览器不允许从 github.io 直接访问芒果TV接口。\n" +
+      "只能退回用 GitHub Actions 方案。";
+  });
+</script>
+</body>
+</html>
