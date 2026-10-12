@@ -7,6 +7,7 @@
 """
 
 import os
+import sys
 import json
 import requests
 from datetime import datetime, timezone, timedelta
@@ -16,6 +17,9 @@ from datetime import datetime, timezone, timedelta
 # ===============================
 URL = "https://dianshi.weibo.com/vote_rank"
 
+# ⚠️ 注意：sign / ts / gsid / current_uid 这类参数通常有时效性，
+#    失效后接口会返回非 1000 的 code。若某天突然抓不到数据，
+#    优先怀疑这几个值需要重新从抓包结果里更新。
 PARAMS = {
     "c": "applet",
     "cid": "1420",
@@ -47,7 +51,7 @@ HEADERS = {
 # 配置
 # ===============================
 TRACKED_NAMES = ["十个勤天", "苏新皓", "朱志鑫", "张泽禹"]
-MAX_POINTS = 1080                 # 18 小时 × 60 分钟
+MAX_POINTS = 1080                 # 5 分钟一帧 × 1080 ≈ 3.75 天
 JSON_FILE = "cloud_data.json"
 CSV_FILE = "cloud_vote_history.csv"   # 云端备份用，不想存可以删掉相关代码
 
@@ -105,20 +109,28 @@ def load_json():
 
 def save_json(history):
     with open(JSON_FILE, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
+        # allow_nan=False：一旦出现 NaN 直接报错，而不是写出浏览器解析不了的 JSON
+        json.dump(history, f, ensure_ascii=False, indent=2, allow_nan=False)
 
 
 def update_json(ts_full, result):
     history = load_json()
 
     # 补全缺失的 key（比如以后加了新选手）
+    # 用 None 而不是 float("nan")，否则 json 里会出现非法的 NaN
     for name in TRACKED_NAMES:
-        history["series"].setdefault(name, [float("nan")] * len(history["times"]))
+        history["series"].setdefault(name, [None] * len(history["times"]))
 
-    history["times"].append(ts_full)
-
-    for name in TRACKED_NAMES:
-        history["series"][name].append(result.get(name, None))
+    # 同一分钟重复运行则覆盖最后一条，避免图上出现重复点
+    if history["times"] and history["times"][-1][:16] == ts_full[:16]:
+        print("↻ 同一分钟内重复运行，覆盖最后一个点")
+        history["times"][-1] = ts_full
+        for name in TRACKED_NAMES:
+            history["series"][name][-1] = result.get(name)
+    else:
+        history["times"].append(ts_full)
+        for name in TRACKED_NAMES:
+            history["series"][name].append(result.get(name))
 
     # 裁剪
     if len(history["times"]) > MAX_POINTS:
@@ -150,8 +162,9 @@ def append_csv(ts_full, result):
 def main():
     result = get_vote()
     if not result:
-        print("本次无数据，跳过")
-        return
+        # 退出码非 0，让 GitHub Actions 显示失败，避免"绿勾但其实没数据"
+        print("❌ 本次无数据，以失败状态退出")
+        sys.exit(1)
 
     ts_full = now_bj().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{ts_full}] {result}")
