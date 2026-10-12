@@ -165,7 +165,7 @@
                 .then(data => {
                     const last = data.times[data.times.length - 1] || '无数据';
                     document.getElementById('update-time').innerText =
-                        '最后更新：' + last + ' ｜ 每 5分钟 自动刷新';
+                        '最后更新：' + last ;
                     renderChart(data);
                 })
                 .catch(err => {
