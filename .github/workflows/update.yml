@@ -2,9 +2,8 @@ name: Update Weibo Vote Data
 
 on:
   schedule:
-    # 每 5 分钟跑一次（UTC 时间，语法是 cron）
-    - cron: '*/5 * * * *'
-  workflow_dispatch:      # 允许手动点按钮触发
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'  # 每 5 分钟，错开整点
+  workflow_dispatch:
 
 jobs:
   update:
