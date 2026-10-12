@@ -1,0 +1,44 @@
+name: Update Weibo Vote Data
+
+on:
+  schedule:
+    # 每 10 分钟跑一次（UTC 时间，语法是 cron）
+    - cron: '*/5 * * * *'
+  workflow_dispatch:      # 允许手动点按钮触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run update script
+        env:
+          WEIBO_COOKIE: ${{ secrets.WEIBO_COOKIE }}
+          TZ: Asia/Shanghai
+        run: python update_rank_cloud.py
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add cloud_data.json cloud_vote_history.csv 2>/dev/null || git add cloud_data.json
+          # 没有变化就跳过
+          if git diff --staged --quiet; then
+            echo "没有变化，跳过提交"
+          else
+            git commit -m "Auto update: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            git push
+          fi
