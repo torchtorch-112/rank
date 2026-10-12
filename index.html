@@ -80,7 +80,7 @@
         };
         const ORDER = ["十个勤天", "苏新皓", "朱志鑫", "张泽禹"];
 
-        const REFRESH_INTERVAL = 5 * 60 * 1000;   // 5 分钟
+        const REFRESH_INTERVAL = 1 * 60 * 1000;   // 1 分钟
         let pollTimer = null;
         let lastTime = null;                       // 上一次渲染的数据时间戳
 
@@ -206,7 +206,10 @@
                 })
                 .catch(err => {
                     console.error('加载失败:', err);
-                    setStatus('数据加载失败：' + err.message);
+                    // 只有从未成功加载过时才提示错误；已有数据则静默忽略本次失败
+                    if (lastTime === null) {
+                        setStatus('数据加载失败：' + err.message);
+                    }
                 })
                 .finally(() => {
                     if (isManual) btn.disabled = false;
