@@ -92,10 +92,36 @@
         }
 
         function renderChart(data) {
-            const times = data.times.map(t => String(t).substring(11, 16));
+            // --- 只显示最近18小时的数据 ---
+            const HOURS_18 = 18 * 60 * 60 * 1000;
+            const parseTime = (t) => new Date(String(t).replace(' ', 'T')).getTime();
+            let times = data.times;
+            let seriesData = data.series;
+            if (times && times.length > 0) {
+                const lastTimestamp = parseTime(times[times.length - 1]);
+                const cutoff = lastTimestamp - HOURS_18;
+                let startIndex = 0;
+                for (let i = 0; i < times.length; i++) {
+                    if (parseTime(times[i]) >= cutoff) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+                if (startIndex > 0) {
+                    times = times.slice(startIndex);
+                    const newSeries = {};
+                    for (const name in seriesData) {
+                        newSeries[name] = seriesData[name].slice(startIndex);
+                    }
+                    seriesData = newSeries;
+                }
+            }
+            // --- 结束 ---
 
-            const seriesNames = ORDER.filter(n => data.series[n]);
-            Object.keys(data.series).forEach(n => {
+            const timesFormatted = times.map(t => String(t).substring(11, 16));
+
+            const seriesNames = ORDER.filter(n => seriesData[n]);
+            Object.keys(seriesData).forEach(n => {
                 if (!seriesNames.includes(n)) seriesNames.push(n);
             });
 
@@ -113,7 +139,7 @@
                 },
                 itemStyle: { color: COLORS[name] || '#4ECDC4' },
                 emphasis: { focus: 'series' },
-                data: data.series[name]
+                data: seriesData[name]
             }));
 
             const option = {
@@ -152,7 +178,7 @@
                 xAxis: {
                     type: 'category',
                     boundaryGap: false,
-                    data: times,
+                    data: timesFormatted,
                     axisLabel: { color: '#8b949e', fontSize: 10 },
                     axisLine: { lineStyle: { color: '#30363d' } },
                     axisTick: { show: false }
