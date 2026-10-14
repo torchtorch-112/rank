@@ -81,6 +81,7 @@
         const ORDER = ["十个勤天", "苏新皓", "朱志鑫", "张泽禹"];
 
         const REFRESH_INTERVAL = 1 * 60 * 1000;   // 1 分钟
+        const HOURS_18 = 18 * 60 * 60 * 1000;     // 只显示最近 18 小时
         let pollTimer = null;
         let lastTime = null;                       // 上一次渲染的数据时间戳
 
@@ -91,56 +92,89 @@
             return v.toLocaleString();
         }
 
+        // "2024-05-01 12:30" -> 时间戳（按本地时区解析）
+        function parseTime(t) {
+            if (t === null || t === undefined) return null;
+            const ms = new Date(String(t).replace(' ', 'T')).getTime();
+            return isNaN(ms) ? null : ms;
+        }
+
+        function pad2(n) { return String(n).padStart(2, '0'); }
+
+        function formatTimeLabel(ts, withDate) {
+            const d = new Date(ts);
+            const hm = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+            if (!withDate) return hm;
+            return (d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + hm;
+        }
+
         function renderChart(data) {
-            // --- 只显示最近18小时的数据 ---
-            const HOURS_18 = 18 * 60 * 60 * 1000;
-            const parseTime = (t) => new Date(String(t).replace(' ', 'T')).getTime();
-            let times = data.times;
-            let seriesData = data.series;
-            if (times && times.length > 0) {
-                const lastTimestamp = parseTime(times[times.length - 1]);
-                const cutoff = lastTimestamp - HOURS_18;
-                let startIndex = 0;
-                for (let i = 0; i < times.length; i++) {
-                    if (parseTime(times[i]) >= cutoff) {
-                        startIndex = i;
-                        break;
+            // ---------- 1. 取时间戳，并按 18 小时裁剪 ----------
+            const rawSeries = data.series || {};
+            let timestamps = (data.times || []).map(parseTime);
+            let seriesData = rawSeries;
+
+            if (timestamps.length) {
+                const lastTs = timestamps[timestamps.length - 1];
+                if (lastTs !== null) {
+                    const cutoff = lastTs - HOURS_18;
+                    let startIndex = -1;
+                    for (let i = 0; i < timestamps.length; i++) {
+                        if (timestamps[i] !== null && timestamps[i] >= cutoff) {
+                            startIndex = i;
+                            break;
+                        }
                     }
-                }
-                if (startIndex > 0) {
-                    times = times.slice(startIndex);
-                    const newSeries = {};
-                    for (const name in seriesData) {
-                        newSeries[name] = seriesData[name].slice(startIndex);
+                    if (startIndex < 0) startIndex = 0;
+                    if (startIndex > 0) {
+                        timestamps = timestamps.slice(startIndex);
+                        const ns = {};
+                        for (const name in rawSeries) {
+                            ns[name] = rawSeries[name].slice(startIndex);
+                        }
+                        seriesData = ns;
                     }
-                    seriesData = newSeries;
                 }
             }
-            // --- 结束 ---
 
-            const timesFormatted = times.map(t => String(t).substring(11, 16));
+            // ---------- 2. 横轴标签是否需要带日期 ----------
+            const firstTs = timestamps.find(t => t !== null);
+            const lastTs = [...timestamps].reverse().find(t => t !== null);
+            const showDate = (firstTs != null && lastTs != null) &&
+                new Date(firstTs).toDateString() !== new Date(lastTs).toDateString();
 
+            // ---------- 3. 组装 series（[时间戳, 票数] 形式） ----------
             const seriesNames = ORDER.filter(n => seriesData[n]);
             Object.keys(seriesData).forEach(n => {
                 if (!seriesNames.includes(n)) seriesNames.push(n);
             });
 
-            const series = seriesNames.map(name => ({
-                name: name,
-                type: 'line',
-                smooth: true,
-                symbol: 'none',
-                connectNulls: false,
-                lineStyle: {
-                    width: 2.5,
-                    color: COLORS[name] || '#4ECDC4',
-                    shadowColor: COLORS[name] || '#4ECDC4',
-                    shadowBlur: 10
-                },
-                itemStyle: { color: COLORS[name] || '#4ECDC4' },
-                emphasis: { focus: 'series' },
-                data: seriesData[name]
-            }));
+            const series = seriesNames.map(name => {
+                const values = seriesData[name] || [];
+                const pts = [];
+                for (let i = 0; i < timestamps.length; i++) {
+                    const ts = timestamps[i];
+                    if (ts === null) continue;
+                    const v = values[i];
+                    pts.push([ts, (v === null || v === undefined || v === '') ? null : v]);
+                }
+                return {
+                    name: name,
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'none',
+                    connectNulls: false,
+                    lineStyle: {
+                        width: 2.5,
+                        color: COLORS[name] || '#4ECDC4',
+                        shadowColor: COLORS[name] || '#4ECDC4',
+                        shadowBlur: 10
+                    },
+                    itemStyle: { color: COLORS[name] || '#4ECDC4' },
+                    emphasis: { focus: 'series' },
+                    data: pts
+                };
+            });
 
             const option = {
                 backgroundColor: 'transparent',
@@ -149,14 +183,19 @@
                     backgroundColor: '#161b22',
                     borderColor: '#30363d',
                     textStyle: { color: '#c9d1d9' },
+                    axisPointer: { type: 'line', lineStyle: { color: '#30363d' } },
                     formatter: function (params) {
-                        let html = '<div style="font-size:12px">' + params[0].axisValue + '</div>';
+                        if (!params || !params.length) return '';
+                        const ts = params[0].axisValue;
+                        let html = '<div style="font-size:12px;color:#8b949e">' +
+                                   formatTimeLabel(ts, true) + '</div>';
                         params.forEach(p => {
+                            const v = Array.isArray(p.value) ? p.value[1] : p.value;
                             html += `<div style="margin-top:4px">
                                 <span style="display:inline-block;width:8px;height:8px;
                                 border-radius:50%;background:${p.color};
                                 margin-right:6px;"></span>
-                                ${p.seriesName}: <b>${formatVote(p.value)}</b>
+                                ${p.seriesName}: <b>${formatVote(v)}</b>
                             </div>`;
                         });
                         return html;
@@ -176,12 +215,19 @@
                     containLabel: true
                 },
                 xAxis: {
-                    type: 'category',
+                    type: 'time',            // ★ 关键：时间轴，按真实时间间隔排布
                     boundaryGap: false,
-                    data: timesFormatted,
-                    axisLabel: { color: '#8b949e', fontSize: 10 },
+                    axisLabel: {
+                        color: '#8b949e',
+                        fontSize: 10,
+                        hideOverlap: true,
+                        formatter: function (value) {
+                            return formatTimeLabel(value, showDate);
+                        }
+                    },
                     axisLine: { lineStyle: { color: '#30363d' } },
-                    axisTick: { show: false }
+                    axisTick: { show: false },
+                    splitLine: { show: false }
                 },
                 yAxis: {
                     type: 'value',
