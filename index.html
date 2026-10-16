@@ -80,10 +80,10 @@
         };
         const ORDER = ["十个勤天", "苏新皓", "朱志鑫", "张泽禹"];
 
-        const REFRESH_INTERVAL = 1 * 60 * 1000;   // 1 分钟
-        const HOURS_18 = 18 * 60 * 60 * 1000;     // 只显示最近 18 小时
+        const REFRESH_INTERVAL = 1 * 60 * 1000;          // 1 分钟轮询一次
+        const WINDOW_MS = 18 * 60 * 60 * 1000;           // ★ 只显示最近 18 小时
         let pollTimer = null;
-        let lastTime = null;                       // 上一次渲染的数据时间戳
+        let lastTime = null;                             // 上一次渲染的数据时间戳
 
         function formatVote(v) {
             if (v === null || v === undefined) return '-';
@@ -109,55 +109,45 @@
         }
 
         function renderChart(data) {
-            // ---------- 1. 取时间戳，并按 18 小时裁剪 ----------
             const rawSeries = data.series || {};
-            let timestamps = (data.times || []).map(parseTime);
-            let seriesData = rawSeries;
+            const rawTimes  = data.times  || [];
 
-            if (timestamps.length) {
-                const lastTs = timestamps[timestamps.length - 1];
-                if (lastTs !== null) {
-                    const cutoff = lastTs - HOURS_18;
-                    let startIndex = -1;
-                    for (let i = 0; i < timestamps.length; i++) {
-                        if (timestamps[i] !== null && timestamps[i] >= cutoff) {
-                            startIndex = i;
-                            break;
-                        }
-                    }
-                    if (startIndex < 0) startIndex = 0;
-                    if (startIndex > 0) {
-                        timestamps = timestamps.slice(startIndex);
-                        const ns = {};
-                        for (const name in rawSeries) {
-                            ns[name] = rawSeries[name].slice(startIndex);
-                        }
-                        seriesData = ns;
-                    }
-                }
+            // ---------- 1. 解析时间戳，丢掉无效值，并按时间升序排列 ----------
+            const marks = [];
+            for (let i = 0; i < rawTimes.length; i++) {
+                const ts = parseTime(rawTimes[i]);
+                if (ts !== null) marks.push({ ts: ts, idx: i });   // idx 记录原始下标
+            }
+            marks.sort(function (a, b) { return a.ts - b.ts; });
+
+            if (!marks.length) {
+                myChart.clear();
+                return;
             }
 
-            // ---------- 2. 横轴标签是否需要带日期 ----------
-            const firstTs = timestamps.find(t => t !== null);
-            const lastTs = [...timestamps].reverse().find(t => t !== null);
-            const showDate = (firstTs != null && lastTs != null) &&
-                new Date(firstTs).toDateString() !== new Date(lastTs).toDateString();
+            // ---------- 2. 以最新一条数据的时间为右边界，向前推 18 小时 ----------
+            const endTs   = marks[marks.length - 1].ts;
+            const startTs = endTs - WINDOW_MS;
 
-            // ---------- 3. 组装 series（[时间戳, 票数] 形式） ----------
-            const seriesNames = ORDER.filter(n => seriesData[n]);
-            Object.keys(seriesData).forEach(n => {
-                if (!seriesNames.includes(n)) seriesNames.push(n);
+            const visible = marks.filter(function (m) { return m.ts >= startTs; });
+
+            // ---------- 3. 横轴标签是否需要带日期 ----------
+            const showDate = new Date(visible[0].ts).toDateString() !==
+                             new Date(endTs).toDateString();
+
+            // ---------- 4. 组装 series（[时间戳, 票数] 形式） ----------
+            const seriesNames = ORDER.filter(function (n) { return rawSeries[n]; });
+            Object.keys(rawSeries).forEach(function (n) {
+                if (seriesNames.indexOf(n) === -1) seriesNames.push(n);
             });
 
-            const series = seriesNames.map(name => {
-                const values = seriesData[name] || [];
-                const pts = [];
-                for (let i = 0; i < timestamps.length; i++) {
-                    const ts = timestamps[i];
-                    if (ts === null) continue;
-                    const v = values[i];
-                    pts.push([ts, (v === null || v === undefined || v === '') ? null : v]);
-                }
+            const series = seriesNames.map(function (name) {
+                const values = rawSeries[name] || [];
+                const pts = visible.map(function (m) {
+                    const v = values[m.idx];
+                    return [m.ts, (v === null || v === undefined || v === '') ? null : v];
+                });
+                const color = COLORS[name] || '#4ECDC4';
                 return {
                     name: name,
                     type: 'line',
@@ -166,11 +156,11 @@
                     connectNulls: false,
                     lineStyle: {
                         width: 2.5,
-                        color: COLORS[name] || '#4ECDC4',
-                        shadowColor: COLORS[name] || '#4ECDC4',
+                        color: color,
+                        shadowColor: color,
                         shadowBlur: 10
                     },
-                    itemStyle: { color: COLORS[name] || '#4ECDC4' },
+                    itemStyle: { color: color },
                     emphasis: { focus: 'series' },
                     data: pts
                 };
@@ -189,14 +179,13 @@
                         const ts = params[0].axisValue;
                         let html = '<div style="font-size:12px;color:#8b949e">' +
                                    formatTimeLabel(ts, true) + '</div>';
-                        params.forEach(p => {
+                        params.forEach(function (p) {
                             const v = Array.isArray(p.value) ? p.value[1] : p.value;
-                            html += `<div style="margin-top:4px">
-                                <span style="display:inline-block;width:8px;height:8px;
-                                border-radius:50%;background:${p.color};
-                                margin-right:6px;"></span>
-                                ${p.seriesName}: <b>${formatVote(v)}</b>
-                            </div>`;
+                            html += '<div style="margin-top:4px">' +
+                                '<span style="display:inline-block;width:8px;height:8px;' +
+                                'border-radius:50%;background:' + p.color +
+                                ';margin-right:6px;"></span>' +
+                                p.seriesName + ': <b>' + formatVote(v) + '</b></div>';
                         });
                         return html;
                     }
@@ -215,7 +204,9 @@
                     containLabel: true
                 },
                 xAxis: {
-                    type: 'time',            // ★ 关键：时间轴，按真实时间间隔排布
+                    type: 'time',
+                    min: startTs,        // ★ 左边界：最新数据时间 - 18h
+                    max: endTs,          // ★ 右边界：最新数据时间
                     boundaryGap: false,
                     axisLabel: {
                         color: '#8b949e',
@@ -259,12 +250,13 @@
 
             // no-cache: 浏览器会发条件请求，文件没变则返回 304，不传正文
             return fetch('cloud_data.json', { cache: 'no-cache' })
-                .then(res => {
+                .then(function (res) {
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     return res.json();
                 })
-                .then(data => {
-                    const last = data.times[data.times.length - 1] || '无数据';
+                .then(function (data) {
+                    const times = data.times || [];
+                    const last = times[times.length - 1] || '无数据';
 
                     // 数据没变，跳过重绘
                     if (last === lastTime) {
@@ -276,14 +268,14 @@
                     setStatus('最后更新：' + last);
                     renderChart(data);
                 })
-                .catch(err => {
+                .catch(function (err) {
                     console.error('加载失败:', err);
                     // 只有从未成功加载过时才提示错误；已有数据则静默忽略本次失败
                     if (lastTime === null) {
                         setStatus('数据加载失败：' + err.message);
                     }
                 })
-                .finally(() => {
+                .finally(function () {
                     if (isManual) btn.disabled = false;
                 });
         }
@@ -292,14 +284,14 @@
         function scheduleNext() {
             clearTimeout(pollTimer);
             if (document.hidden) return;              // 后台不排下一轮
-            pollTimer = setTimeout(async () => {
+            pollTimer = setTimeout(async function () {
                 await loadData(false);
                 scheduleNext();
             }, REFRESH_INTERVAL);
         }
 
         // 页面切回前台：立即拉一次并重新排程
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener('visibilitychange', function () {
             if (!document.hidden) {
                 loadData(false).finally(scheduleNext);
             } else {
@@ -308,8 +300,8 @@
         });
 
         // 手动刷新
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            loadData(true).finally(() => {
+        document.getElementById('refresh-btn').addEventListener('click', function () {
+            loadData(true).finally(function () {
                 clearTimeout(pollTimer);
                 scheduleNext();
             });
@@ -318,7 +310,7 @@
         // 首屏加载
         loadData(false).finally(scheduleNext);
 
-        window.addEventListener('resize', () => myChart.resize());
+        window.addEventListener('resize', function () { myChart.resize(); });
     </script>
 </body>
 </html>
