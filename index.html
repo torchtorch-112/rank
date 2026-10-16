@@ -120,7 +120,8 @@
         const ORDER = ["十个勤天", "苏新皓", "朱志鑫", "张泽禹"];
 
         const REFRESH_INTERVAL = 1 * 60 * 1000;          // 1 分钟轮询一次
-        const HOURS_18 = 18 * 60 * 60 * 1000;            // ★ 只显示最近 18 小时
+        const HOURS_18 = 18 * 60 * 60 * 1000;            // ★ 累计票数模式：最近 18 小时
+        const HOURS_6  = 6 * 60 * 60 * 1000;             // ★ 单次增量模式：最近 6 小时
 
         let pollTimer = null;
         let lastTime = null;                             // 上一次渲染的数据时间戳
@@ -205,10 +206,12 @@
 
             if (endTs !== null) {
                 axisMax = endTs;
-                axisMin = endTs - HOURS_18;
+                // ★ 按模式选择时间窗口：累计 18H / 增量 6H
+                const windowMs = (viewMode === 'delta') ? HOURS_6 : HOURS_18;
+                axisMin = endTs - windowMs;
                 const cutoff = axisMin;
 
-                // 裁剪到最近 18 小时内的数据
+                // 裁剪到窗口内的数据
                 let startIndex = -1;
                 for (let i = 0; i < timestamps.length; i++) {
                     if (timestamps[i] !== null && timestamps[i] >= cutoff) {
