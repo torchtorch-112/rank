@@ -99,7 +99,7 @@
             <button id="refresh-btn" type="button">刷新</button>
             <span class="mode-switch">
                 <button id="mode-total" type="button" class="active">累计票数</button>
-                <button id="mode-delta" type="button">每分钟增量</button>
+                <button id="mode-delta" type="button">单次增量</button>
             </span>
         </div>
     </div>
@@ -125,7 +125,7 @@
         let pollTimer = null;
         let lastTime = null;                             // 上一次渲染的数据时间戳
         let lastData = null;                             // 缓存最近一次数据，供模式切换重绘
-        let viewMode = 'total';                          // 'total' 累计票数 | 'delta' 每分钟增量
+        let viewMode = 'total';                          // 'total' 累计票数 | 'delta' 单次增量
 
         function formatVote(v) {
             if (v === null || v === undefined) return '-';
@@ -154,7 +154,7 @@
         /**
          * 根据当前模式，生成某条曲线的 [时间戳, 值] 点集
          * - total: 直接返回累计票数
-         * - delta: 返回相对上一个点的每分钟增量（票/分钟）
+         * - delta: 返回相对上一个更新点的票数变化量（单次增量）
          */
         function buildPoints(timestamps, values) {
             const pts = [];
@@ -166,7 +166,7 @@
                     pts.push([ts, (v === null || v === undefined || v === '') ? null : Number(v)]);
                 }
             } else {
-                let prevTs = null, prevV = null;
+                let prevV = null;
                 for (let i = 0; i < timestamps.length; i++) {
                     const ts = timestamps[i];
                     if (ts === null) continue;
@@ -174,23 +174,16 @@
                     const num = (raw === null || raw === undefined || raw === '') ? null : Number(raw);
 
                     if (num === null) {
-                        prevTs = null;
                         prevV = null;
                         pts.push([ts, null]);
                         continue;
                     }
 
-                    if (prevTs !== null && prevV !== null) {
-                        const dtMin = (ts - prevTs) / 60000;
-                        if (dtMin > 0) {
-                            pts.push([ts, (num - prevV) / dtMin]);   // 每分钟增量
-                        } else {
-                            pts.push([ts, null]);
-                        }
+                    if (prevV !== null) {
+                        pts.push([ts, num - prevV]);   // ★ 单次增量：本次票数 - 上次票数
                     } else {
-                        pts.push([ts, null]);   // 没有前一个点，无法计算增量
+                        pts.push([ts, null]);          // 没有前一个点，无法计算增量
                     }
-                    prevTs = ts;
                     prevV = num;
                 }
             }
@@ -249,9 +242,6 @@
             });
 
             const isDelta = viewMode === 'delta';
-            const unitSuffix = isDelta
-                ? ' <span style="color:#8b949e;font-size:11px">/分钟</span>'
-                : '';
 
             const series = seriesNames.map(name => {
                 const values = seriesData[name] || [];
@@ -292,7 +282,7 @@
                         const ts = params[0].axisValue;
                         let html = '<div style="font-size:12px;color:#8b949e">' +
                                    formatTimeLabel(ts, true) +
-                                   (isDelta ? '　（增量/分钟）' : '') +
+                                   (isDelta ? '　（单次增量：与上一次更新的差值）' : '') +
                                    '</div>';
                         params.forEach(p => {
                             const v = Array.isArray(p.value) ? p.value[1] : p.value;
@@ -300,7 +290,7 @@
                                 <span style="display:inline-block;width:8px;height:8px;
                                 border-radius:50%;background:${p.color};
                                 margin-right:6px;"></span>
-                                ${p.seriesName}: <b>${formatVote(v)}</b>${unitSuffix}
+                                ${p.seriesName}: <b>${formatVote(v)}</b>
                             </div>`;
                         });
                         return html;
