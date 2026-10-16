@@ -114,10 +114,12 @@
         const COLORS = {
             "十个勤天": "#A29BFE",
             "苏新皓":   "#FF6B6B",
-            "朱志鑫":   "#FFD93D",
-            "张泽禹":   "#2ECC71"
+            "朱志鑫":   "#FFD93D"
         };
-        const ORDER = ["十个勤天", "苏新皓", "朱志鑫", "张泽禹"];
+        const ORDER = ["十个勤天", "苏新皓", "朱志鑫"];
+
+        // ★ 需要在图表中隐藏的选手（即使 cloud_data.json 里还有他的数据）
+        const HIDDEN = ["张泽禹"];
 
         const REFRESH_INTERVAL = 1 * 60 * 1000;          // 1 分钟轮询一次
         const HOURS_18 = 18 * 60 * 60 * 1000;            // ★ 累计票数模式：最近 18 小时
@@ -238,10 +240,13 @@
             const showDate = (axisMin != null && axisMax != null) &&
                 new Date(axisMin).toDateString() !== new Date(axisMax).toDateString();
 
-            // ---------- 3. 组装主图 series ----------
-            const seriesNames = ORDER.filter(n => seriesData[n]);
+            // ---------- 3. 组装主图 series（排除 HIDDEN 名单） ----------
+            const seriesNames = [];
+            ORDER.forEach(n => {
+                if (seriesData[n] && !HIDDEN.includes(n)) seriesNames.push(n);
+            });
             Object.keys(seriesData).forEach(n => {
-                if (!seriesNames.includes(n)) seriesNames.push(n);
+                if (!seriesNames.includes(n) && !HIDDEN.includes(n)) seriesNames.push(n);
             });
 
             const isDelta = viewMode === 'delta';
@@ -271,6 +276,33 @@
                     data: pts
                 };
             });
+
+            // ---------- 3.5 纵轴范围 ----------
+            // ★ 累计票数模式：不再从 0 开始，按当前窗口内的最小值 ~ 最大值自适应缩放
+            // ★ 单次增量模式：保持默认（自动包含 0）
+            let yMin = null, yMax = null;
+
+            if (!isDelta) {
+                let minV = Infinity, maxV = -Infinity;
+                series.forEach(s => {
+                    s.data.forEach(p => {
+                        const v = p[1];
+                        if (v === null || v === undefined || Number.isNaN(v)) return;
+                        if (v < minV) minV = v;
+                        if (v > maxV) maxV = v;
+                    });
+                });
+
+                if (isFinite(minV) && isFinite(maxV)) {
+                    const span = maxV - minV;
+                    // 上下各留一点余量，避免曲线贴着边框
+                    const pad = span > 0
+                        ? span * 0.08
+                        : Math.max(Math.abs(maxV) * 0.02, 1);
+                    yMin = Math.max(0, minV - pad);   // 票数非负
+                    yMax = maxV + pad;
+                }
+            }
 
             const option = {
                 backgroundColor: 'transparent',
@@ -331,6 +363,8 @@
                 },
                 yAxis: {
                     type: 'value',
+                    min: yMin,          // ★ 累计模式：窗口最小值（含余量）
+                    max: yMax,          // ★ 累计模式：窗口最大值（含余量）
                     axisLabel: {
                         color: '#8b949e',
                         fontSize: 10,
